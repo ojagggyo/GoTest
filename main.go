@@ -1,23 +1,35 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
+
+	"rpcserver/rpc"
 )
 
-func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello")
-}
-
-func about(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "About page")
-}
-
 func main() {
+	server := rpc.NewServer()
 
-	http.HandleFunc("/hello", hello)
-	http.HandleFunc("/about", about)
+	// config取得API
+	server.Register("database_api.get_config", func(params json.RawMessage) (interface{}, *rpc.ErrorObj) {
 
-	fmt.Println("Server running at http://localhost:8111")
+		config := map[string]interface{}{
+			"IS_TEST_NET":      false,
+			"ENABLE_FEATURE_X": true,
+			"CHAIN_ID":         "test-chain",
+		}
+
+		return config, nil
+	})
+
+	// echo API
+	server.Register("echo", func(params json.RawMessage) (interface{}, *rpc.ErrorObj) {
+		var v interface{}
+		json.Unmarshal(params, &v)
+		return v, nil
+	})
+
+	http.Handle("/rpc", server)
+
 	http.ListenAndServe(":8111", nil)
 }
